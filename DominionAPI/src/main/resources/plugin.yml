@@ -1,0 +1,4 @@
+name: DominionAPI
+main: me.teux.DominionAPI
+version: 1.0
+load: STARTUP

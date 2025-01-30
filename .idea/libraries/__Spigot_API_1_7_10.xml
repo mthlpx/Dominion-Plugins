@@ -1,0 +1,17 @@
+<component name="libraryTable">
+  <library name="- Spigot API 1.7.10">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/../../APIs/- Spigot API 1.7.10.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../../APIs/item-nbt-api-plugin-2.10.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../../APIs/PowerNBT.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../../APIs/ProtocolLib.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../../APIs/spigot-1.7.10-SNAPSHOT-b1657.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../../APIs/sqlite-jdbc-3.46.0.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/../../APIs/- Spigot API 1.7.10.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../../APIs/spigot-1.7.10-SNAPSHOT-b1657.jar!/" />
+    </SOURCES>
+  </library>
+</component>

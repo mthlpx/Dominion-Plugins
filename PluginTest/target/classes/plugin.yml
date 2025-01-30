@@ -1,0 +1,6 @@
+name: PluginTest
+main: me.teux.PluginTest
+version: 1.0
+depend:
+  - DominionAPI
+load: POSTWORLD

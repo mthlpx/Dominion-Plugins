@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="DominionAPI">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/../../Plugins/DominionAPI.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/../../Plugins/DominionAPI.jar!/" />
+    </SOURCES>
+  </library>
+</component>
