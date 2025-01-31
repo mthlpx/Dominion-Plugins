@@ -12,6 +12,7 @@ public class DominionAPI extends JavaPlugin {
         instance = this;
 
         CommandManager.registerCommands(this, "me.teux.commands");
+
     }
 
     @Override

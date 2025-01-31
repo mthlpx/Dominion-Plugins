@@ -2,6 +2,7 @@ package me.teux.api;
 
 import me.teux.api.utils.ClassScanner;
 import me.teux.api.utils.CooldownManager;
+import me.teux.api.utils.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandMap;
 import org.bukkit.command.PluginCommand;
@@ -16,21 +17,54 @@ import java.util.List;
 
 public class CommandManager {
 
+    private String prefix = "&a[Dominion API] "; // Green prefix
+
+
+
+    // Example usage:  System.out.println(stringUtils.formatar("prefix &eProcessing class: " + clazz.getName()));
+
     public static void registerCommands(Plugin plugin, String packageName) {
         try {
+
             List<Class<?>> classes = ClassScanner.getClasses(plugin, packageName);
 
             for (Class<?> clazz : classes) {
-                System.out.println("[Dominion API] Processando classe: " + clazz.getName());
+                System.out.println(StringUtils.formatar("&e[Dominion API] Processing class: " + clazz.getName()));
                 if (clazz.isAnnotationPresent(CommandInfo.class) && EasyCommand.class.isAssignableFrom(clazz)) {
                     CommandInfo info = clazz.getAnnotation(CommandInfo.class);
-                    System.out.println("[Dominion API] Registrando comando: " + info.name());
+                    System.out.println(StringUtils.formatar("&a[Dominion API] Registering command: &f" + info.name()));
+
+                    // Detailed log of command information
+                    logCommandDetails(info);
+
                     EasyCommand commandInstance = (EasyCommand) clazz.newInstance();
                     registerCommand(plugin, info, commandInstance);
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    private static void logCommandDetails(CommandInfo info) {
+        // Display all relevant command information
+        System.out.println(StringUtils.formatar("&a[Dominion API] Command: &f" + info.name()));
+        System.out.println(StringUtils.formatar("&a[Dominion API] Description: &f" + info.description()));
+        System.out.println(StringUtils.formatar("&a[Dominion API] Permission: &f" + (info.permission().isEmpty() ? "&7None" : info.permission())));
+        System.out.println(StringUtils.formatar("&a[Dominion API] Cooldown: &f" + info.cooldown() + " &aseconds"));
+        System.out.println(StringUtils.formatar("&a[Dominion API] Only for players: &f" + (info.onlyPlayer() ? "&cYes" : "&7No")));
+
+        // Display details about subcommands, if any
+        if (info.subCommands().length > 0) {
+            System.out.println(StringUtils.formatar("&a[Dominion API] Subcommands:"));
+            for (SubCommand sub : info.subCommands()) {
+                System.out.println(StringUtils.formatar("  &e- Subcommand: &f" + sub.name()));
+                System.out.println(StringUtils.formatar("    &a- Permission: &f" + (sub.permission().isEmpty() ? "&7None" : sub.permission())));
+                System.out.println(StringUtils.formatar("    &a- Cooldown: &f" + sub.cooldown() + " &aseconds"));
+                System.out.println(StringUtils.formatar("    &a- Only for players: &f" + (sub.onlyPlayer() ? "&cYes" : "&7No")));
+            }
+        } else {
+            System.out.println(StringUtils.formatar("&a[Dominion API] No subcommands registered."));
         }
     }
 
@@ -44,34 +78,34 @@ public class CommandManager {
                 try {
                     SubCommand sub = args.length > 0 ? getSubCommand(info, args[0]) : null;
 
-                    // 1. Verificar onlyPlayer primeiro
+                    // 1. Check onlyPlayer first
                     boolean isOnlyPlayer = info.onlyPlayer();
                     if (sub != null) {
                         isOnlyPlayer = sub.onlyPlayer();
                     }
 
                     if (isOnlyPlayer && !(sender instanceof Player)) {
-                        sender.sendMessage("§cEste comando só pode ser usado por jogadores!");
+                        sender.sendMessage(StringUtils.formatar("&cThis command can only be used by players!"));
                         return true;
                     }
 
-                    // 2. Verificar permissão específica
+                    // 2. Check specific permission
                     String commandPermission = info.permission();
                     if (args.length == 0 && !commandPermission.isEmpty() && !sender.hasPermission(commandPermission)) {
-                        sender.sendMessage("§cVocê não tem permissão para executar o comando principal!");
+                        sender.sendMessage(StringUtils.formatar("&cYou do not have permission to use this!"));
                         return true;
                     }
 
-                    // Verificar se existe um subcomando e, se sim, verificar sua permissão
+                    // Check if there is a subcommand and, if so, check its permission
                     if (sub != null) {
                         String subPermission = sub.permission();
                         if (!subPermission.isEmpty() && !sender.hasPermission(subPermission)) {
-                            sender.sendMessage("§cVocê não tem permissão para executar o subcomando!");
+                            sender.sendMessage(StringUtils.formatar("&cYou do not have permission to use this!"));
                             return true;
                         }
                     }
 
-                    // 3. Aplicar cooldown
+                    // 3. Apply cooldown
                     if (sender instanceof Player) {
                         Player player = (Player) sender;
                         String fullCommand = info.name();
@@ -85,14 +119,14 @@ public class CommandManager {
                         if (cooldown > 0) {
                             if (CooldownManager.isOnCooldown(fullCommand, player)) {
                                 long remaining = CooldownManager.getRemaining(fullCommand, player) / 1000;
-                                sender.sendMessage("§eAguarde §6" + remaining + "§e segundos para usar novamente!");
+                                sender.sendMessage(StringUtils.formatar("&ePlease wait &6" + remaining + "&e seconds before using again!"));
                                 return true;
                             }
                             CooldownManager.setCooldown(fullCommand, player, cooldown);
                         }
                     }
 
-                    // 4. Executar comando
+                    // 4. Execute command
                     return executor.onCommand(sender, args);
 
                 } catch (Exception e) {
