@@ -48,7 +48,6 @@ public class ClassScanner {
                             .replace('/', '.')
                             .replace(".class", "");
 
-                    System.out.println("[DEBUG] Encontrada classe no JAR: " + className);
                     classes.add(Class.forName(className));
                 }
             }
@@ -64,7 +63,6 @@ public class ClassScanner {
                 processDirectory(file, packageName + "." + file.getName(), classes);
             } else if (file.getName().endsWith(".class")) {
                 String className = packageName + '.' + file.getName().substring(0, file.getName().length() - 6);
-                System.out.println("[DEBUG] Encontrada classe em diretório: " + className);
                 classes.add(Class.forName(className));
             }
         }

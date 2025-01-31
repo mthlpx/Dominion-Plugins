@@ -14,10 +14,10 @@ import java.util.List;
         onlyPlayer = true,
         cooldown = 10,
         description = "Comando de Teste",
+        permission = "plugintest.admin",
         subCommands = {
                 @SubCommand(
                         name = "sub",
-                        permission = "plugintest.test.sub",
                         cooldown = 20,
                         aliases = {"s"},
                         onlyPlayer = false

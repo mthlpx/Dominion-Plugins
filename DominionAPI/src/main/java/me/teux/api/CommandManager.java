@@ -18,15 +18,13 @@ public class CommandManager {
 
     public static void registerCommands(Plugin plugin, String packageName) {
         try {
-            System.out.println("[DEBUG] Procurando comandos em: " + packageName);
             List<Class<?>> classes = ClassScanner.getClasses(plugin, packageName);
-            System.out.println("[DEBUG] Total de classes encontradas: " + classes.size());
 
             for (Class<?> clazz : classes) {
-                System.out.println("[DEBUG] Processando classe: " + clazz.getName());
+                System.out.println("[Dominion API] Processando classe: " + clazz.getName());
                 if (clazz.isAnnotationPresent(CommandInfo.class) && EasyCommand.class.isAssignableFrom(clazz)) {
                     CommandInfo info = clazz.getAnnotation(CommandInfo.class);
-                    System.out.println("[DEBUG] Registrando comando: " + info.name());
+                    System.out.println("[Dominion API] Registrando comando: " + info.name());
                     EasyCommand commandInstance = (EasyCommand) clazz.newInstance();
                     registerCommand(plugin, info, commandInstance);
                 }
@@ -41,56 +39,60 @@ public class CommandManager {
             PluginCommand command = getCommand(info.name(), plugin);
             command.setAliases(Arrays.asList(info.aliases()));
             command.setDescription(info.description());
-            command.setPermission(info.permission());
 
-            // Configura executor com tratamento de subcomandos
             command.setExecutor((sender, cmd, label, args) -> {
                 try {
                     SubCommand sub = args.length > 0 ? getSubCommand(info, args[0]) : null;
 
-                    String requiredPermission = info.permission();
-                    if (sub != null && !sub.permission().isEmpty()) {
-                        requiredPermission = sub.permission();
-                    }
-
-                    if (!requiredPermission.isEmpty() && !sender.hasPermission(requiredPermission)) {
-                        sender.sendMessage("§cVocê não tem permissão!");
-                        return true;
-                    }
-
+                    // 1. Verificar onlyPlayer primeiro
                     boolean isOnlyPlayer = info.onlyPlayer();
                     if (sub != null) {
                         isOnlyPlayer = sub.onlyPlayer();
                     }
 
                     if (isOnlyPlayer && !(sender instanceof Player)) {
-                        sender.sendMessage("§cEste comando somente pode ser usado por jogadores!");
+                        sender.sendMessage("§cEste comando só pode ser usado por jogadores!");
                         return true;
                     }
 
-                    // Verificar cooldown
+                    // 2. Verificar permissão específica
+                    String commandPermission = info.permission();
+                    if (args.length == 0 && !commandPermission.isEmpty() && !sender.hasPermission(commandPermission)) {
+                        sender.sendMessage("§cVocê não tem permissão para executar o comando principal!");
+                        return true;
+                    }
+
+                    // Verificar se existe um subcomando e, se sim, verificar sua permissão
+                    if (sub != null) {
+                        String subPermission = sub.permission();
+                        if (!subPermission.isEmpty() && !sender.hasPermission(subPermission)) {
+                            sender.sendMessage("§cVocê não tem permissão para executar o subcomando!");
+                            return true;
+                        }
+                    }
+
+                    // 3. Aplicar cooldown
                     if (sender instanceof Player) {
                         Player player = (Player) sender;
-                        String fullCommand = info.name() + (args.length > 0 ? "." + args[0] : "");
-                        int cooldown = getEffectiveCooldown(info, args);
+                        String fullCommand = info.name();
+                        int cooldown = info.cooldown();
 
                         if (sub != null) {
                             fullCommand += "." + sub.name();
                             cooldown = sub.cooldown() == -1 ? info.cooldown() : sub.cooldown();
                         }
 
-                        if (cooldown > 0 && CooldownManager.isOnCooldown(fullCommand, player)) {
-                            long remaining = CooldownManager.getRemaining(fullCommand, player) / 1000;
-                            sender.sendMessage("§eAguarde §6" + remaining + "§e segundos para usar novamente!");
-                            return true;
-                        }
-
                         if (cooldown > 0) {
+                            if (CooldownManager.isOnCooldown(fullCommand, player)) {
+                                long remaining = CooldownManager.getRemaining(fullCommand, player) / 1000;
+                                sender.sendMessage("§eAguarde §6" + remaining + "§e segundos para usar novamente!");
+                                return true;
+                            }
                             CooldownManager.setCooldown(fullCommand, player, cooldown);
                         }
                     }
 
-                    // Executar comando
+                    // 4. Executar comando
                     return executor.onCommand(sender, args);
 
                 } catch (Exception e) {
@@ -99,11 +101,8 @@ public class CommandManager {
                 return false;
             });
 
-            // Tab completer
             command.setTabCompleter((sender, cmd, alias, args) -> executor.onTabComplete(sender, args));
-
             getCommandMap().register(plugin.getName(), command);
-
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -117,45 +116,6 @@ public class CommandManager {
                 .findFirst()
                 .orElse(null);
     }
-
-    private static void registerSubCommands(Plugin plugin, CommandInfo info, EasyCommand executor) {
-        for (SubCommand sub : info.subCommands()) {
-            try {
-                PluginCommand subCommand = getCommand(info.name() + ":" + sub.name(), plugin);
-                subCommand.setAliases(Arrays.asList(sub.aliases()));
-                subCommand.setPermission(sub.permission().isEmpty() ? info.permission() : sub.permission());
-
-                subCommand.setExecutor((sender, cmd, label, args) -> {
-                    // Lógica similar ao comando principal
-                    SubCommand suba = args.length > 0 ? getSubCommand(info, args[0]) : null;
-
-                    return executor.onCommand(sender, args);
-                });
-
-                getCommandMap().register(plugin.getName(), subCommand);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    private static boolean matchesSubCommand(SubCommand sub, String arg) {
-        return sub.name().equalsIgnoreCase(arg) ||
-                Arrays.stream(sub.aliases()).anyMatch(a -> a.equalsIgnoreCase(arg));
-    }
-
-    private static int getEffectiveCooldown(CommandInfo info, String[] args) {
-        if (args.length == 0) return info.cooldown();
-
-        for (SubCommand sub : info.subCommands()) {
-            if (matchesSubCommand(sub, args[0])) {
-                return sub.cooldown() == -1 ? info.cooldown() : sub.cooldown();
-            }
-        }
-        return info.cooldown();
-    }
-
-
 
     private static PluginCommand getCommand(String name, Plugin plugin) throws Exception {
         Constructor<PluginCommand> constructor = PluginCommand.class.getDeclaredConstructor(String.class, Plugin.class);
